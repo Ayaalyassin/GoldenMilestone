@@ -7,7 +7,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class QuestionWithAnswerRequest extends FormRequest
+class AnsRequest extends FormRequest
 {
     use GeneralTrait;
 
@@ -20,19 +20,14 @@ class QuestionWithAnswerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id'=>'sometimes|required',
-            'text'=>'string|required',
-            'answers'=>  'required|array',
-            'answers.*.text'=>'string|required',
-            'answers.*.status'=>'boolean|required',
+            'answer'=>['required','string'],
         ];
     }
 
     public function messages()
     {
         return [
-           'text.required' => 'text is required.',
-            'text.string' => 'text is String.',
+
         ];
     }
 
@@ -42,4 +37,5 @@ class QuestionWithAnswerRequest extends FormRequest
         throw new HttpResponseException($this->returnValidationError('E001',$validator));
 
     }
+
 }

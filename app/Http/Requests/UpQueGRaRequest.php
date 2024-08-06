@@ -7,7 +7,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 
-class QuestionWithAnswerRequest extends FormRequest
+class UpQueGRaRequest extends FormRequest
 {
     use GeneralTrait;
 
@@ -20,19 +20,15 @@ class QuestionWithAnswerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'id'=>'sometimes|required',
-            'text'=>'string|required',
-            'answers'=>  'required|array',
-            'answers.*.text'=>'string|required',
-            'answers.*.status'=>'boolean|required',
+            'question_text'=>['required','string'],
+            'grammer'=>['required','string'],
         ];
     }
 
     public function messages()
     {
         return [
-           'text.required' => 'text is required.',
-            'text.string' => 'text is String.',
+
         ];
     }
 
