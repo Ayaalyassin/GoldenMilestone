@@ -4,9 +4,9 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Repositories\UserRepository;
 use App\Traits\GeneralTrait;
 use Illuminate\Http\Exceptions\HttpResponseException;
-use Illuminate\Support\Str;
 use TCG\Voyager\Models\Role;
 use Tymon\JWTAuth\Facades\JWTAuth;
 
@@ -14,25 +14,18 @@ class UserService
 {
     use GeneralTrait;
 
-    protected $userService;
+    protected $userService,$userRepository;
 
-    public function __construc(UserService $userService)
+    public function __construct(UserRepository $userRepository)
     {
-        $this->userService=$userService;
+        $this->userRepository=$userRepository;
     }
 
     public function register($request)
     {
         try {
             $role = Role::where('name', 'user')->firstOrFail();
-            User::create([
-                'name'           => $request->name,
-                'phone_number'   => $request->phone_number,
-                'email'          => $request->email,
-                'password'       => bcrypt($request->password),
-                'remember_token' => Str::random(60),
-                'role_id'        => $role->id,
-            ]);
+            $this->userRepository->createUser($request,$role);
 
         } catch (\Exception $ex) {
             throw new HttpResponseException($this->returnError($ex->getCode(), $ex->getMessage()));

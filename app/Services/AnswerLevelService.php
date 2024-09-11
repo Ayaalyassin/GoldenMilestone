@@ -5,13 +5,10 @@ namespace App\Services;
 
 use App\Http\Requests\AnsRequest;
 use App\Http\Requests\AnswerLevelRequest;
-use App\Models\Answerlevel;
-use App\Models\Levelchoice;
-use App\Models\Questionlevel;
+use App\Repositories\AnswerLevelRepository;
 use App\Traits\GeneralTrait;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class AnswerLevelService
@@ -19,16 +16,19 @@ class AnswerLevelService
 
     use GeneralTrait;
 
+    protected $answerLevelRepository;
+
+    public function __construct(AnswerLevelRepository $answerLevelRepository)
+    {
+        $this->answerLevelRepository=$answerLevelRepository;
+    }
+
 
     public function clac_lev()
     {
         $user_id=Auth::id();
 
-        $number=DB::table('questionlevels')->join('levelchoices','questionlevels.id','=','levelchoices.questionlevel_id')
-            ->where('levelchoices.status','=',true)
-            ->where('levelchoices.user_id','=',$user_id)
-            ->distinct()
-            ->count();
+        $number=$this->answerLevelRepository->number($user_id);
 
         if($number==24 | $number==23)
             return "B6";
@@ -59,7 +59,7 @@ class AnswerLevelService
 
     public function getAll()
     {
-        $answers =Answerlevel::all();
+        $answers =$this->answerLevelRepository->getAll();
         if(count($answers)<0)
         {
             throw new HttpResponseException($this->returnError("404", "not found!"));
@@ -71,7 +71,7 @@ class AnswerLevelService
 
     public function getById($id)
     {
-        $answer = Answerlevel::find($id);
+        $answer = $this->answerLevelRepository->getById($id);
         if ($answer)
             return $answer;
         else
@@ -84,41 +84,37 @@ class AnswerLevelService
     public function save(AnswerLevelRequest  $request)
     {
 
-        $questionlevel = Questionlevel::where('level_text',$request->question)->first();
+        $questionlevel = $this->answerLevelRepository->questionlevel($request);
 
         if(is_null($questionlevel))
         {
             throw new HttpResponseException($this->returnError("404", "questionlevel not found!"));
         }
 
-        $questionlevel->answers()->create([
-            'answer_text'=>$request->answer_text,
-            'status'=>$request->status
-        ]);
+        $this->answerLevelRepository->createAnswers($request,$questionlevel);
 
     }
 
 
     public function update(AnswerLevelRequest $request,$id){
 
-        $questionlevel = Questionlevel::where('level_text','=', $request->question)
-            ->first('id');
+        $questionlevel = $this->answerLevelRepository->questionlevelid($request);
 
         if(is_null($questionlevel))
         {
             throw new HttpResponseException(response()->json("question not found"));
         }
 
-        $answer_old = Answerlevel::find($id);
+        $answer_old = $this->answerLevelRepository->getById($id);
         if(is_null($answer_old))
         {
             throw new HttpResponseException(response()->json("answer not found"));
         }
 
-        $answer_old->update([
-            'answer_text'=>$request->answer_text,
-            'status'=>$request->status,
-            'questionlevel_id'=>$questionlevel->id
+        $this->answerLevelRepository->updateAnswer($answer_old, [
+            'answer_text' => $request->answer_text,
+            'status' => $request->status,
+            'question_id' => $questionlevel->id
         ]);
 
         return $answer_old;
@@ -129,18 +125,12 @@ class AnswerLevelService
     public function answer(AnsRequest $request,$questionlevel_id)
     {
 
-        $questions=DB::table('answerlevels')->join('questionlevels','answerlevels.questionlevel_id','=','questionlevels.id')
-            ->where('answerlevels.status','=',1)->value('answerlevels.answer_text');
+        $questions=$this->answerLevelRepository->questions();
 
         $ans=Str::slug($questions);
 
         $user_id=Auth::id();
-        $levelChoice=Levelchoice::create([
-            'answer_text'=>$request->answer,
-            'user_id'=>$user_id,
-            'questionlevel_id'=>$questionlevel_id
-
-        ]);
+        $levelChoice=$this->answerLevelRepository->levelchoice($request,$user_id,$questionlevel_id);
         if($request->answer == $ans)
         {
             $levelChoice->update(['status'=>true]);
@@ -156,9 +146,9 @@ class AnswerLevelService
 
 
     public function delete($id){
-        $answer = Answerlevel::find($id);
+        $answer = $this->answerLevelRepository->getById($id);
         if ($answer) {
-            $answer->delete();
+            $this->answerLevelRepository->deleteAnsweer($answer);
         } else
             throw new HttpResponseException($this->returnError("404", "There is no answer with id:" . $id . " not found!"));
     }

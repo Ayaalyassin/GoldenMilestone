@@ -4,26 +4,30 @@
 namespace App\Services;
 
 use App\Http\Requests\AppointmentRequest;
-use App\Models\Appointment;
-use App\Models\Order;
+use App\Repositories\AppointmentRepository;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Support\Carbon;
 
 class AppointmentService
 {
 
+    protected $appointmentRepository;
+
+    public function __construct(AppointmentRepository $appointmentRepository)
+    {
+        $this->appointmentRepository=$appointmentRepository;
+    }
+
     public function index()
     {
         $currentDatetime = Carbon::now();
         $currentDate = $currentDatetime->format('Y-m-d');
 
-        $appointments = Appointment::where('date_appointment', '>', $currentDate)
-            ->where('status','=',true)
-            ->get();
+        $appointments = $this->appointmentRepository->appointments($currentDate);
 
         foreach($appointments as $appointment)
         {
-            $count=Order::where('appointment_id','=',$appointment->id)->count();
+            $count=$this->appointmentRepository->count($appointment);
             if($count >20)
             {
                 $appointment->status=false;
@@ -42,12 +46,7 @@ class AppointmentService
 
     public function store(AppointmentRequest $request)
     {
-        $appointment=Appointment::create([
-            'date_appointment'=>$request->date_appointment,
-            'time_appointment'=>$request->time_appointment,
-            'place_appointment'=>$request->place_appointment,
-
-        ]);
+        $appointment=$this->appointmentRepository->createAppointment($request);
 
         return $appointment;
     }
@@ -55,7 +54,7 @@ class AppointmentService
 
     public function show($id)
     {
-        $appointment=Appointment::find($id);
+        $appointment=$this->appointmentRepository->getById($id);
 
         if(is_null($appointment))
         {
@@ -68,31 +67,25 @@ class AppointmentService
 
     public function update(AppointmentRequest $request,$id)
     {
-        $appointments=Appointment::find($id);
+        $appointments=$this->appointmentRepository->getById($id);
 
         if(is_null($appointments))
         {
             throw new HttpResponseException(response()->json("not found"));
         }
 
-        $appointments->update([
-
-            'date_appointment'=>$request->date_appointment,
-            'time_appointment'=>$request->time_appointment,
-            'place_appointment'=>$request->place_appointment,
-
-        ]);
+        $this->appointmentRepository->update($appointments,$request);
         return $appointments;
     }
 
 
     public function destroy($id)
     {
-        $appointments=Appointment::find($id);
+        $appointments=$this->appointmentRepository->getById($id);
         if(is_null($appointments))
         {
             throw new HttpResponseException(response()->json("not found"));
         }
-        $appointments->delete();
+        $this->appointmentRepository->delete($appointments);
     }
 }

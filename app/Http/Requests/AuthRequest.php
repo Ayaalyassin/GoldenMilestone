@@ -19,7 +19,7 @@ class AuthRequest extends FormRequest
     {
         return [
             'name'=>'required|string',
-            //'email'=>'required|string|email|unique:users',
+            'email'=>'required|string|email|unique:users',
             'phone_number'=>['required','regex:/^(?:\+88|09)?(?:\d{10}|\d{13})$/','unique:users'],
             'password' => 'required|min:8|max:32',
 
